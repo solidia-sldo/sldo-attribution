@@ -52,13 +52,13 @@
       status.innerText = `✅ Connecté : ${address}\nPréparation de la transaction…`;
 
       const sldo4 = new ethers.Contract(sldo4Address, sldo4Abi, signer);
-      const tx = await sldo4.buyWithSLD(); // sans argument
+      const tx = await sldo4.buyWithSLD();
       await tx.wait();
 
       status.innerText = "✅ Transaction réussie.";
     } catch (err) {
       console.error(err);
-      status.innerText = "❌ Erreur : " + err.message;
+      status.innerText = "❌ Erreur : " + (err.reason || err.message || "Transaction refusée.");
     }
   }
 </script>
