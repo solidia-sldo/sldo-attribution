@@ -1,199 +1,47 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Activer mes SLDO</title>
+  <meta charset="UTF-8" />
+  <title>Test SLDO2</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 2em;
-      background-color: #f9f9f9;
-      max-width: 600px;
-      margin: auto;
-    }
-    label, select, input, button {
-      display: block;
-      margin: 1em 0;
-      font-size: 1em;
-      width: 100%;
-    }
-    button {
-      padding: 0.5em 1em;
-      background-color: #0077cc;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #status {
-      margin-top: 1em;
-      font-weight: bold;
-      color: darkgreen;
-      white-space: pre-line;
-    }
-  </style>
 </head>
 <body>
 
-<h1>Activer mes jetons SLD-O</h1>
-
-<p>Connectez votre portefeuille, choisissez le nombre de jetons, le mode de paiement, et confirmez. Le prix varie selon le palier actif.</p>
-
-<label for="quantite">Nombre de SLDO :</label>
-<input id="quantite" min="1" type="number" value="1" />
-
-<label for="paiement">Mode de paiement :</label>
-<select id="paiement">
-  <option value="sld">SLD</option>
-  <option value="eth">ETH</option>
-  <option value="usdc">USDC</option>
-</select>
-
-<button onclick="acheterSLDO()">Activer mes SLDO</button>
-
-<p id="status">&nbsp;</p>
+<h1>Test de déclenchement SLDO2</h1>
+<button onclick="tester()">Tester l’achat</button>
+<p id="status"></p>
 
 <script>
   const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
-  const sldTokenAddress = "0x3e6c4fED0D2681b91FFc53dA722e674e6748674d";
-  const usdcTokenAddress = "0xd9AaEc86B6a548E6fAa3A2a620Ca3C7F2Db8Aa9F";
-  const sldo2Abi = [
-    "function buyWithSLD(uint256)",
-    "function buyWithETH(uint256) payable",
-    "function buyWithUSDC(uint256)",
-    "function totalSupply() view returns (uint256)"
-  ];
-  const erc20Abi = [
-    "function approve(address,uint256) returns (bool)",
-    "function allowance(address,address) view returns (uint256)",
-    "function balanceOf(address) view returns (uint256)"
-  ];
-  let provider, signer;
+  const sldo2Abi = ["function buyWithSLD(uint256)"];
 
-  const paliers = [
-    { seuil: 500, prix: 5 },
-    { seuil: 1500, prix: 10 },
-    { seuil: 4500, prix: 15 },
-    { seuil: 9500, prix: 20 },
-    { seuil: 17000, prix: 25 },
-    { seuil: 25000, prix: 30 }
-  ];
-
-  async function switchToBaseMainnet() {
-    const base = {
-      chainId: "0x2105",
-      chainName: "Base",
-      nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
-      rpcUrls: ["https://mainnet.base.org"],
-      blockExplorerUrls: ["https://basescan.org"]
-    };
-    try {
-      await provider.send("wallet_switchEthereumChain", [{ chainId: base.chainId }]);
-    } catch (e) {
-      if (e.code === 4902) {
-        await provider.send("wallet_addEthereumChain", [base]);
-      } else {
-        throw new Error("Changement de réseau refusé.");
-      }
-    }
-
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = provider.getSigner();
-  }
-
-  function prixUnitaire(totalActuel) {
-    for (let palier of paliers) {
-      if (totalActuel < palier.seuil) return palier.prix;
-    }
-    return paliers[paliers.length - 1].prix;
-  }
-
-  async function acheterSLDO() {
-    const quantite = parseInt(document.getElementById("quantite").value);
-    const mode = document.getElementById("paiement").value;
+  async function tester() {
     const status = document.getElementById("status");
-    status.innerText = "Connexion au portefeuille…";
+    status.innerText = "Connexion…";
 
     try {
-      if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-      } else {
-        const wcProvider = new WalletConnectProvider.default({
-          rpc: { 8453: "https://mainnet.base.org" },
-          chainId: 8453
-        });
-        await wcProvider.enable();
-        provider = new ethers.providers.Web3Provider(wcProvider);
+      if (!window.ethereum) {
+        status.innerText = "❌ Aucun portefeuille détecté.";
+        return;
       }
 
-      await switchToBaseMainnet();
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
+      status.innerText = `✅ Connecté : ${address}\nPréparation de la transaction…`;
 
       const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
-      const totalActuel = await sldo2.totalSupply();
-      const palierActif = prixUnitaire(totalActuel.toNumber());
-      const userAddress = await signer.getAddress();
+      const tx = await sldo2.buyWithSLD(1); // test avec 1 SLDO
+      await tx.wait();
 
-      status.innerText = `Palier actif : ${palierActif} € par SLDO\nCalcul du coût total…`;
-
-      if (mode === "sld") {
-        const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
-        const prixSLD = ethers.utils.parseUnits(palierActif.toString(), 18);
-        const cout = prixSLD.mul(quantite);
-        const solde = await sld.balanceOf(userAddress);
-        const autorisation = await sld.allowance(userAddress, sldo2Address);
-
-        if (solde.lt(cout)) {
-          status.innerText += `\n❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 2)}\nRequis : ${ethers.utils.formatUnits(cout, 2)}`;
-          return;
-        }
-
-        if (autorisation.lt(cout)) {
-          status.innerText += "\nAutorisation du contrat pour prélever les SLD…";
-          const txApprove = await sld.approve(sldo2Address, cout);
-          await txApprove.wait();
-        }
-
-        status.innerText += "\nAttribution des SLDO en cours…";
-        const tx = await sldo2.buyWithSLD(quantite);
-        await tx.wait();
-        status.innerText = "✅ SLDO activés avec succès.";
-
-      } else if (mode === "eth") {
-        const prixETH = ethers.utils.parseUnits((palierActif / 1800).toFixed(6), 18); // ETH ≈ 1800 €
-        const cout = prixETH.mul(quantite);
-        status.innerText += `\nPaiement en ETH : ${ethers.utils.formatUnits(cout, 18)} ETH`;
-        const tx = await sldo2.buyWithETH(quantite, { value: cout });
-        await tx.wait();
-        status.innerText = "✅ SLDO activés avec succès.";
-
-      } else if (mode === "usdc") {
-        const usdc = new ethers.Contract(usdcTokenAddress, erc20Abi, signer);
-        const prixUSDC = ethers.utils.parseUnits(palierActif.toString(), 6);
-        const cout = prixUSDC.mul(quantite);
-        const solde = await usdc.balanceOf(userAddress);
-        const autorisation = await usdc.allowance(userAddress, sldo2Address);
-
-        if (solde.lt(cout)) {
-          status.innerText += `\n❌ Solde USDC insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 6)}\nRequis : ${ethers.utils.formatUnits(cout, 6)}`;
-          return;
-        }
-
-        if (autorisation.lt(cout)) {
-          status.innerText += "\nAutorisation du contrat pour prélever les USDC…";
-          const txApprove = await usdc.approve(sldo2Address, cout);
-          await txApprove.wait();
-        }
-
-        status.innerText += "\nPaiement en USDC en cours…";
-        const tx = await sldo2.buyWithUSDC(quantite);
-        await tx.wait();
-        status.innerText = "✅ SLDO activés avec succès.";
-      }
-
+      status.innerText = "✅ Transaction réussie.";
     } catch (err) {
-      console
+      console.error(err);
+      status.innerText = "❌ Erreur : " + err.message;
+    }
+  }
+</script>
+
+</body>
+</html>
