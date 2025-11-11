@@ -2,18 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Test SLDO2</title>
+  <title>Test SLDO4</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
 
-<h1>Test de déclenchement SLDO2</h1>
+<h1>Test de déclenchement SLDO4</h1>
 <button onclick="tester()">Tester l’achat</button>
 <p id="status"></p>
 
 <script>
-  const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
-  const sldo2Abi = ["function buyWithSLD(uint256)"];
+  const sldo4Address = "0xA86aD75aAAD7Cc1Fd9F4fca3484059CB9b8B1978";
+  const sldo4Abi = ["function buyWithSLD()"];
 
   async function switchToBase(provider) {
     const base = {
@@ -51,8 +51,8 @@
       const address = await signer.getAddress();
       status.innerText = `✅ Connecté : ${address}\nPréparation de la transaction…`;
 
-      const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
-      const tx = await sldo2.buyWithSLD(1); // test avec 1 SLDO
+      const sldo4 = new ethers.Contract(sldo4Address, sldo4Abi, signer);
+      const tx = await sldo4.buyWithSLD(); // sans argument
       await tx.wait();
 
       status.innerText = "✅ Transaction réussie.";
