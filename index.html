@@ -33,6 +33,7 @@
       margin-top: 1em;
       font-weight: bold;
       color: darkgreen;
+      white-space: pre-line;
     }
   </style>
 </head>
@@ -50,6 +51,8 @@
 <label for="paiement">Mode de paiement :</label>
 <select id="paiement">
   <option value="sld">SLD</option>
+  <option value="eth">ETH</option>
+  <option value="usdc">USDC</option>
 </select>
 
 <button onclick="acheterSLDO()">Activer mes SLDO</button>
@@ -59,12 +62,16 @@
 <script>
   const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
   const sldTokenAddress = "0x3e6c4fED0D2681b91FFc53dA722e674e6748674d";
-  const sldo2Abi = ["function buyWithSLD(uint256)"];
+  const usdcTokenAddress = "0xd9AAEC86b6A548e6faA3A2A620Ca3c7f2dB8aA9f";
+  const sldo2Abi = [
+    "function buyWithSLD(uint256)",
+    "function buyWithETH(uint256) payable",
+    "function buyWithUSDC(uint256)"
+  ];
   const erc20Abi = [
     "function approve(address,uint256) returns (bool)",
     "function allowance(address,address) view returns (uint256)",
-    "function balanceOf(address) view returns (uint256)",
-    "function decimals() view returns (uint8)"
+    "function balanceOf(address) view returns (uint256)"
   ];
   let provider, signer;
 
@@ -92,6 +99,7 @@
 
   async function acheterSLDO() {
     const quantite = parseInt(document.getElementById("quantite").value);
+    const mode = document.getElementById("paiement").value;
     const status = document.getElementById("status");
     status.innerText = "Connexion au portefeuille…";
 
@@ -111,35 +119,63 @@
       await switchToBaseMainnet();
 
       const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
-      const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
       const userAddress = await signer.getAddress();
 
-      const decimals = await sld.decimals();
-      const prixSLD = ethers.utils.parseUnits("500", decimals);
-      const cout = prixSLD.mul(quantite);
+      if (mode === "sld") {
+        const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
+        const prixSLD = ethers.utils.parseUnits("500", 18);
+        const cout = prixSLD.mul(quantite);
+        const solde = await sld.balanceOf(userAddress);
+        const autorisation = await sld.allowance(userAddress, sldo2Address);
 
-      const solde = await sld.balanceOf(userAddress);
-      const soldeLisible = ethers.utils.formatUnits(solde, decimals);
-      const coutLisible = ethers.utils.formatUnits(cout, decimals);
+        if (solde.lt(cout)) {
+          status.innerText = `❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 18)}\nRequis : ${ethers.utils.formatUnits(cout, 18)}`;
+          return;
+        }
 
-      if (solde.lt(cout)) {
-        status.innerText = `❌ Solde SLD insuffisant.\nSolde détecté : ${soldeLisible} SLD\nCoût requis : ${coutLisible} SLD`;
-        return;
+        if (autorisation.lt(cout)) {
+          status.innerText = "Autorisation du contrat pour prélever les SLD…";
+          const txApprove = await sld.approve(sldo2Address, cout);
+          await txApprove.wait();
+        }
+
+        status.innerText = "Attribution des SLDO en cours…";
+        const tx = await sldo2.buyWithSLD(quantite);
+        await tx.wait();
+        status.innerText = "✅ SLDO activés avec succès.";
+
+      } else if (mode === "eth") {
+        const prixETH = ethers.utils.parseUnits("0.003", 18); // 0.003 ETH par SLDO
+        const cout = prixETH.mul(quantite);
+        status.innerText = "Paiement en ETH en cours…";
+        const tx = await sldo2.buyWithETH(quantite, { value: cout });
+        await tx.wait();
+        status.innerText = "✅ SLDO activés avec succès.";
+
+      } else if (mode === "usdc") {
+        const usdc = new ethers.Contract(usdcTokenAddress, erc20Abi, signer);
+        const prixUSDC = ethers.utils.parseUnits("1", 6); // 1 USDC par SLDO
+        const cout = prixUSDC.mul(quantite);
+        const solde = await usdc.balanceOf(userAddress);
+        const autorisation = await usdc.allowance(userAddress, sldo2Address);
+
+        if (solde.lt(cout)) {
+          status.innerText = `❌ Solde USDC insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 6)}\nRequis : ${ethers.utils.formatUnits(cout, 6)}`;
+          return;
+        }
+
+        if (autorisation.lt(cout)) {
+          status.innerText = "Autorisation du contrat pour prélever les USDC…";
+          const txApprove = await usdc.approve(sldo2Address, cout);
+          await txApprove.wait();
+        }
+
+        status.innerText = "Paiement en USDC en cours…";
+        const tx = await sldo2.buyWithUSDC(quantite);
+        await tx.wait();
+        status.innerText = "✅ SLDO activés avec succès.";
       }
 
-      const autorisation = await sld.allowance(userAddress, sldo2Address);
-      if (autorisation.lt(cout)) {
-        status.innerText = "Étape 1 : autorisation du contrat pour prélever les SLD…";
-        const txApprove = await sld.approve(sldo2Address, cout);
-        status.innerText = "Autorisation signée, passage immédiat à l’attribution…";
-        await txApprove.wait();
-      }
-
-      status.innerText = "Étape 2 : attribution des SLDO en cours…";
-      const tx = await sldo2.buyWithSLD(quantite);
-      await tx.wait();
-
-      status.innerText = "✅ SLDO activés avec succès.";
     } catch (err) {
       console.error(err);
       status.innerText = "❌ Erreur : " + err.message;
