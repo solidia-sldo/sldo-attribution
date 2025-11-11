@@ -2,25 +2,146 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>SLDO Attribution</title>
+  <title>Activer mes SLDO</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
       padding: 2em;
       background-color: #f9f9f9;
+      max-width: 600px;
+      margin: auto;
     }
-    h1 {
-      color: #333;
+    label, select, input, button {
+      display: block;
+      margin: 1em 0;
+      font-size: 1em;
+      width: 100%;
     }
-    p {
-      font-size: 1.2em;
-      color: #555;
+    button {
+      padding: 0.5em 1em;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    #status {
+      margin-top: 1em;
+      font-weight: bold;
+      color: darkgreen;
     }
   </style>
 </head>
 <body>
-  <h1>Attribution SLDO2</h1>
-  <p>Ce bloc affirme l’attribution citoyenne du contrat SLDO2.</p>
+
+<h1>Activer mes jetons SLD-O</h1>
+
+<p>Connectez votre portefeuille (MetaMask, Coinbase Wallet, Trust Wallet, Ledger…), choisissez le nombre de jetons, le mode de paiement, et confirmez. L’attribution est immédiate, sans inscription ni validation manuelle.</p>
+
+<p style="color: darkred; font-weight: bold;">⚠️ Veuillez vérifier que vous êtes connecté au réseau <strong>Base</strong>. Si ce n’est pas le cas, la page vous proposera automatiquement de basculer.</p>
+
+<label for="quantite">Nombre de SLDO :</label>
+<input id="quantite" min="1" type="number" value="1" />
+
+<label for="paiement">Mode de paiement :</label>
+<select id="paiement">
+  <option value="sld">SLD</option>
+</select>
+
+<button onclick="acheterSLDO()">Activer mes SLDO</button>
+
+<p id="status">&nbsp;</p>
+
+<script>
+  const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
+  const sldTokenAddress = "0x3e6c4fED0D2681b91FFc53dA722e674e6748674d";
+  const sldo2Abi = ["function buyWithSLD(uint256)"];
+  const erc20Abi = [
+    "function approve(address,uint256) returns (bool)",
+    "function allowance(address,address) view returns (uint256)",
+    "function balanceOf(address) view returns (uint256)"
+  ];
+  let provider, signer;
+
+  async function switchToBaseMainnet() {
+    const base = {
+      chainId: "0x2105",
+      chainName: "Base",
+      nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
+      rpcUrls: ["https://mainnet.base.org"],
+      blockExplorerUrls: ["https://basescan.org"]
+    };
+    try {
+      await provider.send("wallet_switchEthereumChain", [{ chainId: base.chainId }]);
+    } catch (e) {
+      if (e.code === 4902) {
+        await provider.send("wallet_addEthereumChain", [base]);
+      } else {
+        throw new Error("Changement de réseau refusé.");
+      }
+    }
+  }
+
+  async function acheterSLDO() {
+    const quantite = parseInt(document.getElementById("quantite").value);
+    const status = document.getElementById("status");
+    status.innerText = "Connexion au portefeuille…";
+
+    try {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+      } else {
+        const wcProvider = new WalletConnectProvider.default({
+          rpc: { 8453: "https://mainnet.base.org" },
+          chainId: 8453
+        });
+        await wcProvider.enable();
+        provider = new ethers.providers.Web3Provider(wcProvider);
+      }
+
+      await switchToBaseMainnet();
+      signer = provider.getSigner();
+      const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
+      const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
+      const userAddress = await signer.getAddress();
+
+      const prixSLD = ethers.utils.parseUnits("500", 2); // 500 SLD = 5 €
+      const cout = prixSLD.mul(quantite);
+
+      const solde = await sld.balanceOf(userAddress);
+      if (solde.lt(cout)) {
+        status.innerText = "❌ Solde SLD insuffisant pour cette attribution.";
+        return;
+      }
+
+      const autorisation = await sld.allowance(userAddress, sldo2Address);
+      if (autorisation.lt(cout)) {
+        status.innerText = "Étape 1 : autorisation du contrat pour prélever les SLD…";
+        const txApprove = await sld.approve(sldo2Address, cout);
+        status.innerText = "Autorisation signée, passage immédiat à l’attribution…";
+        await txApprove.wait();
+      }
+
+      status.innerText = "Étape 2 : attribution des SLDO en cours…";
+      const tx = await sldo2.buyWithSLD(quantite);
+      await tx.wait();
+
+      status.innerText = "✅ SLDO activés avec succès.";
+    } catch (err) {
+      console.error(err);
+      if (err.message.includes("Solde insuffisant")) {
+        status.innerText = "❌ Solde SLD insuffisant.";
+      } else {
+        status.innerText = "❌ Erreur : " + err.message;
+      }
+    }
+  }
+</script>
+
 </body>
 </html>
