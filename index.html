@@ -84,6 +84,10 @@
         throw new Error("Changement de réseau refusé.");
       }
     }
+
+    // 🔁 Recréer provider et signer après le switch
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
   }
 
   async function acheterSLDO() {
@@ -105,7 +109,7 @@
       }
 
       await switchToBaseMainnet();
-      signer = provider.getSigner();
+
       const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
       const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
       const userAddress = await signer.getAddress();
