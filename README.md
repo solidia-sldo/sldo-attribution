@@ -18,6 +18,7 @@ Ce dépôt est publié sous **licence MIT**, en cohérence avec le contrat SLDO2
 
 ✍️ Auteur  
 **Christophe Adam**  
-Passionné de crypto et humaniste — parce que j’aime les gens
+Citoyen engagé, passionné de crypto, structurant des solutions claires et respectueuses
+
 
 
