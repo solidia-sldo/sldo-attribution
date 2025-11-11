@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Activer mes SLDO</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
@@ -100,6 +100,7 @@
         throw new Error("Changement de réseau refusé.");
       }
     }
+
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
   }
@@ -121,7 +122,6 @@
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
       } else {
         const wcProvider = new WalletConnectProvider.default({
           rpc: { 8453: "https://mainnet.base.org" },
@@ -129,7 +129,6 @@
         });
         await wcProvider.enable();
         provider = new ethers.providers.Web3Provider(wcProvider);
-        signer = provider.getSigner();
       }
 
       await switchToBaseMainnet();
@@ -190,4 +189,11 @@
           await txApprove.wait();
         }
 
-        status.innerText += "\nPaiement en USDC en cours…
+        status.innerText += "\nPaiement en USDC en cours…";
+        const tx = await sldo2.buyWithUSDC(quantite);
+        await tx.wait();
+        status.innerText = "✅ SLDO activés avec succès.";
+      }
+
+    } catch (err) {
+      console
