@@ -15,6 +15,25 @@
   const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
   const sldo2Abi = ["function buyWithSLD(uint256)"];
 
+  async function switchToBase(provider) {
+    const base = {
+      chainId: "0x2105",
+      chainName: "Base",
+      nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
+      rpcUrls: ["https://mainnet.base.org"],
+      blockExplorerUrls: ["https://basescan.org"]
+    };
+    try {
+      await provider.send("wallet_switchEthereumChain", [{ chainId: base.chainId }]);
+    } catch (e) {
+      if (e.code === 4902) {
+        await provider.send("wallet_addEthereumChain", [base]);
+      } else {
+        throw new Error("Changement de réseau refusé.");
+      }
+    }
+  }
+
   async function tester() {
     const status = document.getElementById("status");
     status.innerText = "Connexion…";
@@ -27,6 +46,7 @@
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
+      await switchToBase(provider);
       const signer = provider.getSigner();
       const address = await signer.getAddress();
       status.innerText = `✅ Connecté : ${address}\nPréparation de la transaction…`;
