@@ -114,12 +114,12 @@
       const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
       const userAddress = await signer.getAddress();
 
-      const prixSLD = ethers.utils.parseUnits("500", 2); // 500 SLD = 5 €
+      const prixSLD = ethers.utils.parseUnits("500", 18); // 500 SLD = 5 €
       const cout = prixSLD.mul(quantite);
 
       const solde = await sld.balanceOf(userAddress);
       if (solde.lt(cout)) {
-        status.innerText = "❌ Solde SLD insuffisant pour cette attribution.";
+        status.innerText = `❌ Solde SLD insuffisant. Solde détecté : ${ethers.utils.formatUnits(solde, 18)} SLD`;
         return;
       }
 
