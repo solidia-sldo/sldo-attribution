@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Activer mes SLDO</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
@@ -100,7 +100,6 @@
         throw new Error("Changement de réseau refusé.");
       }
     }
-
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
   }
@@ -133,22 +132,22 @@
 
       await switchToBaseMainnet();
 
-      const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, signer);
+      const sldo2 = new ethers.Contract(sldo2Address, sldo2Abi, provider.getSigner());
       const totalActuel = await sldo2.totalSupply();
       const palierActif = prixUnitaire(totalActuel.toNumber());
-      const userAddress = await signer.getAddress();
+      const userAddress = await provider.getSigner().getAddress();
 
       status.innerText = `Palier actif : ${palierActif} € par SLDO\nCalcul du coût total…`;
 
       if (mode === "sld") {
-        const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
+        const sld = new ethers.Contract(sldTokenAddress, erc20Abi, provider.getSigner());
         const prixSLD = ethers.utils.parseUnits(palierActif.toString(), 18);
         const cout = prixSLD.mul(quantite);
         const solde = await sld.balanceOf(userAddress);
         const autorisation = await sld.allowance(userAddress, sldo2Address);
 
         if (solde.lt(cout)) {
-          status.innerText += `\n❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 2)}\nRequis : ${ethers.utils.formatUnits(cout, 2)}`;
+          status.innerText += `\n❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 2)}\nRequis : ${ethers.utils.formatUnits(cout, 18)}`;
           return;
         }
 
@@ -172,7 +171,7 @@
         status.innerText = "✅ SLDO activés avec succès.";
 
       } else if (mode === "usdc") {
-        const usdc = new ethers.Contract(usdcTokenAddress, erc20Abi, signer);
+        const usdc = new ethers.Contract(usdcTokenAddress, erc20Abi, provider.getSigner());
         const prixUSDC = ethers.utils.parseUnits(palierActif.toString(), 6);
         const cout = prixUSDC.mul(quantite);
         const solde = await usdc.balanceOf(userAddress);
@@ -192,8 +191,4 @@
         status.innerText += "\nPaiement en USDC en cours…";
         const tx = await sldo2.buyWithUSDC(quantite);
         await tx.wait();
-        status.innerText = "✅ SLDO activés avec succès.";
-      }
-
-    } catch (err) {
-      console
+        status.innerText = "✅ SLDO activés avec
