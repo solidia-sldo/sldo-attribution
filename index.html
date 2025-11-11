@@ -58,7 +58,11 @@
       status.innerText = "✅ Transaction réussie.";
     } catch (err) {
       console.error(err);
-      status.innerText = "❌ Erreur : " + (err.reason || err.message || "Transaction refusée.");
+      if (err.code === 'UNPREDICTABLE_GAS_LIMIT') {
+        status.innerText = "❌ Transaction refusée par le contrat (palier inactif ou complet).";
+      } else {
+        status.innerText = "❌ Erreur : " + (err.reason || err.message || "Transaction refusée.");
+      }
     }
   }
 </script>
