@@ -62,7 +62,7 @@
 <script>
   const sldo2Address = "0x62701d3516e827f6a1bff888dfc94a2bba50e345";
   const sldTokenAddress = "0x3e6c4fED0D2681b91FFc53dA722e674e6748674d";
-  const usdcTokenAddress = "0xd9AAEC86b6A548e6faA3A2A620Ca3c7f2dB8aA9f";
+  const usdcTokenAddress = "0xd9AaEc86B6a548E6fAa3A2a620Ca3C7F2Db8Aa9F"; // checksum validée
   const sldo2Abi = [
     "function buyWithSLD(uint256)",
     "function buyWithETH(uint256) payable",
@@ -129,7 +129,7 @@
         const autorisation = await sld.allowance(userAddress, sldo2Address);
 
         if (solde.lt(cout)) {
-          status.innerText = `❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 18)}\nRequis : ${ethers.utils.formatUnits(cout, 18)}`;
+          status.innerText = `❌ Solde SLD insuffisant.\nSolde : ${ethers.utils.formatUnits(solde, 2)}\nRequis : ${ethers.utils.formatUnits(cout, 2)}`;
           return;
         }
 
@@ -145,7 +145,7 @@
         status.innerText = "✅ SLDO activés avec succès.";
 
       } else if (mode === "eth") {
-        const prixETH = ethers.utils.parseUnits("0.003", 18); // 0.003 ETH par SLDO
+        const prixETH = ethers.utils.parseUnits("0.005", 18); // 5 € ≈ 0.005 ETH
         const cout = prixETH.mul(quantite);
         status.innerText = "Paiement en ETH en cours…";
         const tx = await sldo2.buyWithETH(quantite, { value: cout });
@@ -154,7 +154,7 @@
 
       } else if (mode === "usdc") {
         const usdc = new ethers.Contract(usdcTokenAddress, erc20Abi, signer);
-        const prixUSDC = ethers.utils.parseUnits("1", 6); // 1 USDC par SLDO
+        const prixUSDC = ethers.utils.parseUnits("1", 6); // 1 USDC = 1 €
         const cout = prixUSDC.mul(quantite);
         const solde = await usdc.balanceOf(userAddress);
         const autorisation = await usdc.allowance(userAddress, sldo2Address);
