@@ -13,3 +13,11 @@ Pour intégrer ce bloc dans une page web :
 ```html
 <iframe src="https://solidia-sldo.github.io/sldo-attribution/" width="100%" height="600" frameborder="0"></iframe>
 
+🛡️ Licence  
+Ce dépôt est publié sous **licence MIT**, en cohérence avec le contrat SLDO2. Vous êtes libres de le réutiliser, le modifier et le distribuer, à condition de conserver les mentions de licence et de paternité.
+
+✍️ Auteur  
+**Christophe Adam**  
+Passionné de crypto et humaniste — parce que j’aime les gens
+
+
