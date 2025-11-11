@@ -63,7 +63,8 @@
   const erc20Abi = [
     "function approve(address,uint256) returns (bool)",
     "function allowance(address,address) view returns (uint256)",
-    "function balanceOf(address) view returns (uint256)"
+    "function balanceOf(address) view returns (uint256)",
+    "function decimals() view returns (uint8)"
   ];
   let provider, signer;
 
@@ -113,14 +114,16 @@
       const sld = new ethers.Contract(sldTokenAddress, erc20Abi, signer);
       const userAddress = await signer.getAddress();
 
-      const prixSLD = ethers.utils.parseUnits("500", 2); // 500 SLD = 5 €
+      const decimals = await sld.decimals();
+      const prixSLD = ethers.utils.parseUnits("500", decimals);
       const cout = prixSLD.mul(quantite);
 
       const solde = await sld.balanceOf(userAddress);
-      const soldeLisible = ethers.utils.formatUnits(solde, 2);
+      const soldeLisible = ethers.utils.formatUnits(solde, decimals);
+      const coutLisible = ethers.utils.formatUnits(cout, decimals);
 
       if (solde.lt(cout)) {
-        status.innerText = `❌ Solde SLD insuffisant. Solde détecté : ${soldeLisible} SLD`;
+        status.innerText = `❌ Solde SLD insuffisant.\nSolde détecté : ${soldeLisible} SLD\nCoût requis : ${coutLisible} SLD`;
         return;
       }
 
